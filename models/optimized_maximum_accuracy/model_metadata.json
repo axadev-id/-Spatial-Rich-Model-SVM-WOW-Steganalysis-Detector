@@ -1,0 +1,43 @@
+{
+  "model_info": {
+    "type": "VotingClassifier",
+    "model_name": "VotingSoft",
+    "feature_dimensions": {
+      "original": 588,
+      "selected": 92,
+      "final": 117
+    }
+  },
+  "performance": {
+    "test_accuracy": 0.7916666666666666,
+    "test_f1": 0.7863247863247863,
+    "test_precision": 0.8070175438596491,
+    "test_recall": 0.7666666666666667
+  },
+  "dataset_info": {
+    "total_samples": 600,
+    "samples_per_class": 300,
+    "test_size": 0.2
+  },
+  "feature_engineering": {
+    "advanced_srm": true,
+    "multiple_filter_banks": true,
+    "statistical_features": true,
+    "feature_selection_methods": [
+      "variance",
+      "correlation",
+      "f_test",
+      "mutual_info"
+    ]
+  },
+  "optimization": {
+    "ensemble_methods": true,
+    "hyperparameter_optimization": true,
+    "stacking_classifier": false
+  },
+  "system_info": {
+    "gpu_available": true,
+    "memory_limit_gb": 8.0,
+    "processing_date": "2025-10-22 15:27:35"
+  }
+}

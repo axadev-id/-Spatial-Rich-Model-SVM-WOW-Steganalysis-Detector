@@ -1,0 +1,40 @@
+@"
+# Dataset & images
+dataset/
+data/
+*.pgm
+*.png
+*.jpg
+*.jpeg
+
+# Models & large artifacts
+models/*.pkl
+models/**/*.pkl
+*.npy
+*.npz
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and outputs
+logs/
+outputs/
+results/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual envs
+env/
+venv/
+"@ | Out-File -FilePath ".\.gitignore" -Encoding utf8
