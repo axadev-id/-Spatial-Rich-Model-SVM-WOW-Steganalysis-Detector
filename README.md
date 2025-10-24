@@ -171,10 +171,54 @@ Catatan: Ensemble Voting (SVM Linear + SVM RBF + RF + ExtraTrees + GB) mengunggu
 
 ## Detail Teknis (opsional)
 
-### Fitur SRM (588D)
+### Penjelasan SRM (Spatial Rich Model)
 
-- Residual dari high-pass filter → kuantisasi → co-occurrence (6 arah) → agregasi statistik.
-- Robust membedakan noise natural (cover) vs noise terdistorsi embedding (stego).
+SRM adalah keluarga fitur untuk steganalysis yang mengekstrak pola pada noise/residual citra. Intinya: kita buang konten gambar, fokus ke jejak kecil yang ditinggalkan embedding, lalu kita rangkum polanya menjadi vektor fitur.
+
+Apa saja yang digunakan di proyek ini dan untuk apa:
+
+- Residual/High‑pass filters (7 buah)
+    - Untuk apa: menonjolkan noise dan tepi agar pergeseran distribusi akibat embedding lebih terlihat.
+    - Jenis (contoh kategori): laplacian 3×3, edge horizontal/vertikal/diagonal, second‑order derivative, varian 5×5 yang lebih halus.
+- Truncation & Quantization (simetris)
+    - Untuk apa: membatasi outlier dan men-stabilkan nilai residual; mengurangi sensitivitas ke noise acak.
+    - Prinsip: nilai residual dibatasi ke ±T lalu dibagi step q dan dibulatkan ke bilangan kecil diskrit.
+- Co‑occurrence (orde 4, 6 arah)
+    - Untuk apa: menangkap ketergantungan spasial antar piksel bertetangga, bukan hanya histogram satu piksel.
+    - Arah: horizontal, vertikal, dua diagonal dan simetrinya (total 6 arah).
+- Symmetrization & histogram merging
+    - Untuk apa: menggabungkan pola yang ekuivalen secara rotasi/pantulan agar dimensi lebih kecil dan robust.
+- Agregasi statistik → Vektor fitur 588D
+    - Untuk apa: merangkum semua histogram co‑occurrence menjadi vektor fitur yang kompak dan informatif.
+
+Ringkas alur SRM yang dipakai:
+
+```
+Gambar → Residual (7 filter) → Truncate/Quantize → Co-occurrence (orde 4, 6 arah)
+            → Symmetrization/Merge → Hitung histogram → Gabung → Fitur (588 dimensi)
+```
+
+Pseudocode konseptual:
+
+```python
+features = []
+for f in filters_7x:              # 7 filter high-pass
+        r = convolve(image, f)        # residual
+        rq = quantize(truncate(r))    # truncation + quantization (simetris)
+        for d in directions_6:        # 6 arah
+                cooc = cooccurrence(rq, order=4, direction=d)
+                h = histogram(cooc, symmetric=True)
+                features.append(h)
+
+features = merge_and_flatten(features)  # → 588 dimensi
+```
+
+Catatan: nilai parameter (T, q) dan detail kernel mengikuti implementasi di notebook extractor; angka pastinya tidak krusial untuk memakai model ini, karena artefak model sudah menyimpan state yang kompatibel.
+
+### Ringkas SRM yang diekstrak (588D)
+
+- Residual dari high‑pass filter → kuantisasi → co‑occurrence (6 arah) → agregasi statistik.
+- Efektif membedakan noise natural (cover) vs noise terdistorsi embedding (stego).
 
 ### Feature Engineering
 
