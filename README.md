@@ -1,3 +1,251 @@
+# Deteksi Steganografi WOW dengan SRM + SVM Ensemble
+
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange.svg)](https://scikit-learn.org/)
+[![Accuracy](https://img.shields.io/badge/Accuracy-79.17%25-success.svg)](#hasil--performa)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+Sistem AI untuk mendeteksi steganografi WOW (Wavelet Obtained Weights) pada citra berbasis fitur Spatial Rich Model (SRM) dan ensemble SVM.
+
+- Akurasi teruji: 79.17% (BOSSBase 1.01 + WOW 0.4 bpp)
+- Siap dipakai: Notebook, script, hingga API/GUI
+- Reproducible: Pipeline dan artefak model disertakan
+
+---
+
+## Daftar Isi
+
+- [Ringkas: Cara Kerja](#ringkas-cara-kerja)
+- [Quick Start (5 menit)](#quick-start-5-menit)
+- [Download Model & Dataset](#download-model--dataset)
+- [Cara Pakai](#cara-pakai)
+- [Hasil & Performa](#hasil--performa)
+- [Detail Teknis (opsional)](#detail-teknis-opsional)
+- [Deployment (opsional)](#deployment-opsional)
+- [FAQ](#faq)
+
+---
+
+## Ringkas: Cara Kerja
+
+1) Input gambar 512×512 (grayscale)
+2) Ekstraksi 588 fitur SRM (noise residual + co-occurrence)
+3) Feature engineering (filter variance, korelasi, SelectKBest, scaling)
+4) Ensemble 5 model (SVM Linear, SVM RBF, RF, ExtraTrees, GB) → voting
+5) Output: Cover atau Stego (+ confidence)
+
+Diagram sederhana:
+
+```
+Gambar (512×512) → SRM 588 fitur → Pilih 120 fitur → Ensemble Voting → Prediksi
+```
+
+---
+
+## Quick Start (5 menit)
+
+Prasyarat: Python 3.8–3.10, internet untuk download model (~210 MB).
+
+1) Clone repo dan masuk folder
+
+```bash
+git clone https://github.com/axadev-id/-Spatial-Rich-Model-SVM-WOW-Steganalysis-Detector.git
+cd -Spatial-Rich-Model-SVM-WOW-Steganalysis-Detector
+```
+
+2) Buat dan aktifkan virtual env, lalu install dependencies
+
+```bash
+python -m venv venv
+venv\Scripts\activate   # Windows
+# source venv/bin/activate  # Linux/Mac
+pip install -r requirements.txt
+```
+
+3) Download artefak model (wajib) dan taruh di folder yang benar
+
+- Link: https://drive.google.com/drive/folders/1yM2MSXuIbgKDw8MDY6m9d3xbxs8lh1zS?usp=sharing
+- File yang wajib ada di `models/optimized_maximum_accuracy/`:
+  - model_akhir.pkl
+  - feature_selector_akhir.pkl
+  - feature_scaler_akhir.pkl
+
+4) Verifikasi instalasi
+
+```bash
+python -c "import sklearn, numpy, scipy; print('OK')"
+```
+
+Selesai — siap pakai! Lanjut ke [Cara Pakai](#cara-pakai).
+
+---
+
+## Download Model & Dataset
+
+### Model (wajib untuk inference)
+
+Unduh dari Google Drive dan simpan ke `models/optimized_maximum_accuracy/`:
+
+- model_akhir.pkl (≈180 MB)
+- feature_selector_akhir.pkl (≈25 MB)
+- feature_scaler_akhir.pkl (≈5 MB)
+
+Link: https://drive.google.com/drive/folders/1yM2MSXuIbgKDw8MDY6m9d3xbxs8lh1zS?usp=sharing
+
+### Dataset (opsional, hanya jika ingin training ulang)
+
+- BOSSBase 1.01 + WOW 0.4 bpp: https://www.kaggle.com/datasets/mubtasim180/bossbase-1-01-0-4-wow
+
+---
+
+## Cara Pakai
+
+### 1) Paling mudah: Notebook
+
+Jalankan Jupyter dan buka `src/model_test/main.ipynb`, lalu Run All.
+
+```bash
+jupyter notebook
+```
+
+Notebook akan memuat model, melakukan evaluasi, dan menampilkan metrik (akurasi, confusion matrix).
+
+### 2) Script Python (prediksi 1 gambar)
+
+Buat file `test_detector.py` dan isi singkatnya seperti ini (contoh alur):
+
+```python
+import joblib
+import numpy as np
+
+# 1) Load model & artefak
+model = joblib.load('models/optimized_maximum_accuracy/model_akhir.pkl')
+selector = joblib.load('models/optimized_maximum_accuracy/feature_selector_akhir.pkl')
+scaler = joblib.load('models/optimized_maximum_accuracy/feature_scaler_akhir.pkl')
+
+# 2) Load gambar dan ekstraksi SRM (lihat notebook untuk implementasi extractor)
+# features_raw = extractor.extract_features(img)  # shape: (588,)
+
+# 3) Transform fitur
+# features_selected = selector.transform(features_raw.reshape(1, -1))
+# features_scaled = scaler.transform(features_selected)
+
+# 4) Prediksi
+# pred = model.predict(features_scaled)[0]
+# proba = model.predict_proba(features_scaled)[0]
+# print('STEGO' if pred == 1 else 'COVER', max(proba))
+```
+
+Jalankan:
+
+```bash
+python test_detector.py
+```
+
+### 3) Batch (banyak gambar)
+
+Lihat contoh ringkas di README bagian sebelumnya atau adaptasi dari notebook untuk loop folder dan simpan hasil ke CSV.
+
+---
+
+## Hasil & Performa
+
+- Akurasi: 79.17%
+- Rangkuman metrik (kelas Cover/Stego):
+  - Precision ≈ 0.78 / 0.81
+  - Recall ≈ 0.82 / 0.77
+  - F1 ≈ 0.80 / 0.79
+
+Confusion matrix (contoh ringkas):
+
+```
+             Predicted
+            Cover  Stego
+Actual Cover   49     11
+       Stego   14     46
+```
+
+Catatan: Ensemble Voting (SVM Linear + SVM RBF + RF + ExtraTrees + GB) mengungguli model tunggal (SVM) ~+2.67%.
+
+---
+
+## Detail Teknis (opsional)
+
+### Fitur SRM (588D)
+
+- Residual dari high-pass filter → kuantisasi → co-occurrence (6 arah) → agregasi statistik.
+- Robust membedakan noise natural (cover) vs noise terdistorsi embedding (stego).
+
+### Feature Engineering
+
+- Variance threshold → correlation filtering → SelectKBest (F-test/MI) → MinMaxScaler.
+- Target akhir ≈ 120 fitur paling informatif.
+
+### Model
+
+- Base models: SVM (linear, RBF), RandomForest, ExtraTrees, GradientBoosting.
+- Final: Soft VotingClassifier (weighted average probability).
+
+---
+
+## Deployment (opsional)
+
+### Flask API singkat
+
+```python
+from flask import Flask, request, jsonify
+import joblib, numpy as np
+
+app = Flask(__name__)
+model = joblib.load('models/optimized_maximum_accuracy/model_akhir.pkl')
+selector = joblib.load('models/optimized_maximum_accuracy/feature_selector_akhir.pkl')
+scaler = joblib.load('models/optimized_maximum_accuracy/feature_scaler_akhir.pkl')
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.post('/predict')
+def predict():
+    # TODO: load image from request.files, extract SRM, transform, predict
+    return {'prediction': 'cover', 'confidence': 0.95}
+
+app.run(port=5000)
+```
+
+---
+
+## FAQ
+
+Q: Perlu dataset untuk sekadar pakai model?  
+A: Tidak. Cukup download artefak model dari Google Drive.
+
+Q: Bisa untuk JPEG?  
+A: Tidak optimal (model spatial domain). Perlu pendekatan khusus JPEG.
+
+Q: Error “file model tidak ditemukan”?  
+A: Pastikan 3 file model ada di `models/optimized_maximum_accuracy/` (lihat bagian download model).
+
+---
+
+## Lisensi & Sitasi
+
+Lisensi: MIT.
+
+Sitasi:
+
+```
+@misc{steganalysis_wow_srm_svm_2025,
+  title={Deteksi Steganografi WOW menggunakan SRM dan SVM Ensemble},
+  author={axadev-id},
+  year={2025},
+  url={https://github.com/axadev-id/-Spatial-Rich-Model-SVM-WOW-Steganalysis-Detector}
+}
+```
+
+---
+
+Terima kasih kepada BOSSBase, peneliti SRM/WOW, dan komunitas scikit-learn. Kaggle dataset oleh mubtasim180.
 <div align="center"># Deteksi Steganografi WOW menggunakan SRM dan SVM Ensemble# Deteksi Steganografi WOW menggunakan SRM dan SVM Ensemble# GPU-Accelerated Steganalysis with SRM Features and RAPIDS cuML
 
 
